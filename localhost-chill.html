@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>localhost:chill — lo-fi for devs who should be debugging</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
+<script src="https://www.youtube.com/iframe_api"></script>
+<style>
+  :root{
+    --void: #0a0e14;
+    --panel: #11161d;
+    --panel-2: #161c25;
+    --border: #212832;
+    --text: #c9d1d9;
+    --dim: #5b6472;
+    --mint: #6ee7b7;
+    --violet: #a78bfa;
+    --amber: #fbbf24;
+    --accent: var(--mint);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html,body{height:100%;}
+  body{
+    background: var(--void); color: var(--text); font-family:'Inter',sans-serif;
+    overflow:hidden; height:100vh; display:flex; flex-direction:column; position:relative;
+  }
+  .grain{
+    position:fixed; inset:0; pointer-events:none; z-index:50;
+    background-image: repeating-linear-gradient(180deg, rgba(255,255,255,0.02) 0px, rgba(255,255,255,0.02) 1px, transparent 1px, transparent 3px);
+    mix-blend-mode: overlay;
+  }
+  .glow-orb{
+    position:fixed; width:600px; height:600px; border-radius:50%;
+    background: radial-gradient(circle, var(--accent) 0%, transparent 70%);
+    opacity:.06; top:-200px; right:-200px; z-index:0; transition: background 1s ease; pointer-events:none;
+  }
+
+  /* ---- HUD layer ---- */
+  .hud-grid{
+    position:fixed; inset:0; pointer-events:none; z-index:1; opacity:.05;
+    background-image: linear-gradient(var(--accent) 1px, transparent 1px), linear-gradient(90deg, var(--accent) 1px, transparent 1px);
+    background-size: 42px 42px; transition: background-image 1s ease;
+  }
+  .scanline{
+    position:fixed; left:0; right:0; height:120px; z-index:3; pointer-events:none;
+    background: linear-gradient(180deg, transparent, rgba(110,231,183,.05), transparent);
+    animation: scan 7s linear infinite;
+  }
+  @keyframes scan{ 0%{top:-120px;} 100%{top:100vh;} }
+
+  .corner{ position:fixed; width:26px; height:26px; border-color:var(--accent); z-index:4; opacity:.6; pointer-events:none; transition:border-color 1s ease; }
+  .corner.tl{ top:8px; left:8px; border-top:2px solid; border-left:2px solid; }
+  .corner.tr{ top:8px; right:8px; border-top:2px solid; border-right:2px solid; }
+  .corner.bl{ bottom:8px; left:8px; border-bottom:2px solid; border-left:2px solid; }
+  .corner.br{ bottom:8px; right:8px; border-bottom:2px solid; border-right:2px solid; }
+
+  .hud-strip{
+    display:flex; gap:22px; padding:6px 22px; background:var(--void);
+    border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-size:11px;
+    color:var(--dim); z-index:2; flex-shrink:0; letter-spacing:.5px;
+  }
+  .hud-strip .item{ display:flex; gap:6px; align-items:center; }
+  .hud-strip .item b{ color:var(--accent); font-weight:500; }
+  .hud-strip .item .lbl{ color:var(--dim); }
+
+  @keyframes glitchFlicker{
+    0%,100%{ opacity:1; transform:translateX(0); }
+    92%{ opacity:1; transform:translateX(0); }
+    93%{ opacity:.4; transform:translateX(-1px); }
+    94%{ opacity:1; transform:translateX(1px); }
+    95%{ opacity:.6; transform:translateX(0); }
+  }
+  .glitchy{ animation: glitchFlicker 6s infinite; }
+  #gate{
+    position:fixed; inset:0; background:var(--void); z-index:100;
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px; text-align:center;
+  }
+  #gate h1{ font-family:'JetBrains Mono',monospace; font-size:clamp(28px,5vw,48px); color:var(--text); letter-spacing:-1px; }
+  #gate h1 span{color:var(--accent);}
+  #gate p{color:var(--dim); font-size:14px; max-width:440px; line-height:1.6;}
+  #gate .login-box{
+    margin-top:14px; display:flex; flex-direction:column; gap:12px; align-items:center;
+    border:1px solid var(--border); background:var(--panel); padding:26px 30px; border-radius:10px; min-width:300px;
+  }
+  #gate .login-label{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim); letter-spacing:1px; align-self:flex-start; }
+  #nameInput{
+    width:100%; background:var(--void); border:1px solid var(--border); color:var(--text);
+    font-family:'JetBrains Mono',monospace; font-size:14px; padding:10px 12px; border-radius:6px; outline:none;
+  }
+  #nameInput:focus{ border-color:var(--accent); }
+  #enterBtn{
+    width:100%; padding:12px 32px; background:transparent; border:1px solid var(--accent);
+    color:var(--accent); font-family:'JetBrains Mono',monospace; font-size:14px; border-radius:6px; cursor:pointer; transition:.2s;
+  }
+  #enterBtn:hover{background:var(--accent); color:var(--void);}
+  #resetOperator{ font-size:11px; color:var(--dim); text-decoration:underline; cursor:pointer; background:none; border:none; font-family:'Inter',sans-serif; }
+  #resetOperator:hover{ color:var(--accent); }
+
+  .topbar{
+    display:flex; justify-content:space-between; align-items:center; padding:12px 22px;
+    border-bottom:1px solid var(--border); background:var(--panel); font-size:13px; z-index:2; flex-shrink:0;
+  }
+  .status-left{display:flex; align-items:center; gap:8px; color:var(--dim);}
+  .dot{width:7px; height:7px; border-radius:50%; background:var(--mint); box-shadow:0 0 8px var(--mint); animation:pulse 2s infinite;}
+  @keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+  #onlineCount{color:var(--text); font-weight:600;}
+  .status-right{display:flex; gap:18px; color:var(--dim); font-family:'JetBrains Mono',monospace; font-size:12px;}
+  #commitTicker{color:var(--accent); transition: opacity .3s;}
+
+  .editor{flex:1; display:flex; overflow:hidden; z-index:1; min-height:0;}
+  .gutter{
+    width:48px; background:var(--panel); border-right:1px solid var(--border); color:var(--dim);
+    font-family:'JetBrains Mono',monospace; font-size:13px; padding:24px 0; text-align:right; line-height:1.9;
+  }
+  .gutter div{padding-right:12px;}
+  .code-wrap{flex:1; padding:24px 28px; overflow:auto; display:flex; align-items:center;}
+  .code{ font-family:'JetBrains Mono',monospace; font-size:15px; line-height:2; white-space:pre-wrap; color:var(--text); }
+  .code .kw{color:var(--violet);} .code .fn{color:var(--accent);} .code .cm{color:var(--dim); font-style:italic;} .code .str{color:var(--amber);}
+  .caret{display:inline-block; width:8px; height:16px; background:var(--accent); vertical-align:middle; animation:blink 1s step-end infinite;}
+  @keyframes blink{50%{opacity:0;}}
+
+  .sidebar{
+    width:280px; flex-shrink:0; background:var(--panel); border-left:1px solid var(--border);
+    padding:20px 18px; overflow:hidden; display:flex; flex-direction:column; gap:22px;
+  }
+  .sidebar h3{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim); letter-spacing:1px; margin-bottom:10px; font-weight:500; }
+  .meter{ margin-bottom:12px; }
+  .meter-top{ display:flex; justify-content:space-between; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--text); margin-bottom:5px; }
+  .meter-track{ height:5px; background:var(--void); border-radius:3px; overflow:hidden; border:1px solid var(--border); }
+  .meter-fill{ height:100%; background:var(--accent); border-radius:3px; transition: width .8s ease, background 1s ease; }
+  .log-list{ display:flex; flex-direction:column; gap:8px; overflow:hidden; flex:1; }
+  .log-list div{
+    font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim); opacity:0;
+    animation: fadeInLog .4s ease forwards; line-height:1.5;
+  }
+  .log-list div b{ color:var(--accent); font-weight:500; }
+  @keyframes fadeInLog{ from{opacity:0; transform:translateY(4px);} to{opacity:1; transform:translateY(0);} }
+  .timer-box{ font-family:'JetBrains Mono',monospace; }
+  #sessionTimer{ font-size:26px; color:var(--accent); letter-spacing:1px; }
+  .timer-sub{ font-size:11px; color:var(--dim); margin-top:4px; }
+
+  .dock{ background:var(--panel); border-top:1px solid var(--border); z-index:2; flex-shrink:0; }
+
+  .source-tabs{ display:flex; gap:6px; padding:10px 22px 0; }
+  .source-tabs button{
+    background:transparent; border:1px solid var(--border); color:var(--dim); font-family:'JetBrains Mono',monospace;
+    font-size:11px; padding:5px 12px; border-radius:6px 6px 0 0; cursor:pointer; transition:.2s;
+  }
+  .source-tabs button.active{ color:var(--accent); border-color:var(--accent); border-bottom-color:var(--panel); }
+
+  .source-panel{ padding:12px 22px; border-bottom:1px solid var(--border); }
+
+  /* YouTube panel */
+  #sourceYoutube{ display:flex; align-items:center; gap:14px; }
+  #ytPlayer{ width:120px; height:68px; border-radius:6px; overflow:hidden; flex-shrink:0; background:#000; }
+  .yt-controls{ display:flex; gap:8px; align-items:center; }
+  .yt-controls button{
+    width:34px; height:34px; border-radius:50%; border:1px solid var(--accent); background:transparent;
+    color:var(--accent); cursor:pointer; font-size:12px; transition:.2s;
+  }
+  .yt-controls button:hover{ background:var(--accent); color:var(--void); }
+  .yt-meta{ min-width:0; }
+  #ytTrackName{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; max-width:280px; }
+  .yt-sub{ font-size:11px; color:var(--dim); margin-top:2px; }
+  .viz{ display:flex; align-items:flex-end; gap:3px; height:22px; margin-left:auto; }
+  .viz span{ width:3px; background:var(--accent); border-radius:2px; opacity:.7; transition:background .5s; }
+
+  /* Spotify panel */
+  #sourceSpotify iframe{ border-radius:8px; }
+  .config-note{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim); padding:10px 0; }
+  .config-note code{ color:var(--amber); }
+
+  /* Synth panel */
+  #sourceSynth{ display:flex; align-items:center; gap:16px; }
+  #playBtn{
+    width:38px; height:38px; border-radius:50%; border:1px solid var(--accent); background:transparent;
+    color:var(--accent); cursor:pointer; font-size:13px; display:flex; align-items:center; justify-content:center; transition:.2s; flex-shrink:0;
+  }
+  #playBtn:hover{ background:var(--accent); color:var(--void); }
+  input[type=range]{ width:90px; accent-color:var(--accent); }
+
+  .moods{display:flex; gap:8px; padding:12px 22px; flex-wrap:wrap;}
+  .moods button{
+    background:var(--panel-2); border:1px solid var(--border); color:var(--dim);
+    font-family:'JetBrains Mono',monospace; font-size:12px; padding:7px 12px; border-radius:14px; cursor:pointer; transition:.2s;
+  }
+  .moods button:hover{color:var(--text); border-color:var(--accent);}
+  .moods button.active{color:var(--void); background:var(--accent); border-color:var(--accent);}
+
+  ::-webkit-scrollbar{width:8px;}
+  ::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+</style>
+</head>
+<body>
+
+<div class="grain"></div>
+<div class="glow-orb" id="orb"></div>
+<div class="hud-grid"></div>
+<div class="scanline"></div>
+<div class="corner tl"></div>
+<div class="corner tr"></div>
+<div class="corner bl"></div>
+<div class="corner br"></div>
+
+<div id="gate">
+  <h1>localhost<span>:chill</span></h1>
+  <p>English + Bollywood, on shuffle, via YouTube or Spotify's own players — or skip both and run the generative lo-fi synth, rendered live in your browser.</p>
+  <div class="login-box">
+    <span class="login-label">// IDENTIFY YOURSELF</span>
+    <input type="text" id="nameInput" placeholder="your name" autocomplete="off">
+    <button id="enterBtn">▶ npm run chill</button>
+    <button id="resetOperator" style="display:none;">not you? reset</button>
+  </div>
+</div>
+
+<div class="hud-strip">
+  <div class="item"><span class="lbl">DATE</span><b id="hudDate">--</b></div>
+  <div class="item"><span class="lbl">TIME</span><b id="hudTime" class="glitchy">--:--:--</b></div>
+  <div class="item"><span class="lbl">OPERATOR</span><b id="hudUser">DEV_01</b></div>
+  <div class="item"><span class="lbl">NODE</span><b>127.0.0.1::localhost-chill</b></div>
+  <div class="item"><span class="lbl">SIGNAL</span><b id="hudSignal">▂▄▆█▆▄▂</b></div>
+</div>
+
+<header class="topbar">
+  <div class="status-left"><span class="dot"></span><span id="onlineCount">312</span> devs debugging right now</div>
+  <div class="status-right">
+    <span>⎇ main</span>
+    <span id="commitTicker">fix: it works on my machine</span>
+  </div>
+</header>
+
+<main class="editor">
+  <div class="gutter" id="gutter"></div>
+  <div class="code-wrap"><pre class="code" id="codeArea"></pre></div>
+  <aside class="sidebar">
+    <div>
+      <h3>SYSTEM</h3>
+      <div class="meter">
+        <div class="meter-top"><span>CPU</span><span id="cpuVal">42%</span></div>
+        <div class="meter-track"><div class="meter-fill" id="cpuBar" style="width:42%"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter-top"><span>MEMORY</span><span id="memVal">61%</span></div>
+        <div class="meter-track"><div class="meter-fill" id="memBar" style="width:61%"></div></div>
+      </div>
+      <div class="meter">
+        <div class="meter-top"><span>FOCUS</span><span id="focusVal">88%</span></div>
+        <div class="meter-track"><div class="meter-fill" id="focusBar" style="width:88%"></div></div>
+      </div>
+    </div>
+    <div class="timer-box">
+      <h3>SESSION</h3>
+      <div id="sessionTimer">00:00:00</div>
+      <div class="timer-sub">time since you opened this instead of working</div>
+    </div>
+    <div style="flex:1; min-height:0; display:flex; flex-direction:column;">
+      <h3>ACTIVITY LOG</h3>
+      <div class="log-list" id="logList"></div>
+    </div>
+  </aside>
+</main>
+
+<footer class="dock">
+  <div class="source-tabs">
+    <button data-src="youtube" class="active">YouTube</button>
+    <button data-src="spotify">Spotify</button>
+    <button data-src="synth">Lo-fi Synth</button>
+  </div>
+
+  <div id="sourceYoutube" class="source-panel">
+    <div id="ytPlayer"></div>
+    <div class="yt-controls">
+      <button id="ytPrev">⏮</button>
+      <button id="ytPlay">▶</button>
+      <button id="ytNext">⏭</button>
+      <button id="ytMute">🔊</button>
+    </div>
+    <div class="yt-meta">
+      <div id="ytTrackName">Add your playlist ID in CONFIG to start</div>
+      <div class="yt-sub">shuffled · random on every visit</div>
+    </div>
+    <input type="range" id="ytVol" min="0" max="100" value="70" style="width:70px;">
+    <div class="viz" id="viz"></div>
+  </div>
+
+  <div id="sourceSpotify" class="source-panel" style="display:none">
+    <div id="spotifyEmbedWrap"></div>
+    <div class="config-note">Add your Spotify playlist ID in <code>CONFIG.spotifyPlaylistId</code> — Spotify's own widget has a built-in shuffle button.</div>
+  </div>
+
+  <div id="sourceSynth" class="source-panel" style="display:none">
+    <button id="playBtn">▶</button>
+    <div>
+      <div style="font-family:'JetBrains Mono',monospace;font-size:13px;">lofi-generator.synth</div>
+      <div style="font-size:11px;color:var(--dim);margin-top:2px;">procedurally generated · never repeats</div>
+    </div>
+    <input type="range" id="vol" min="0" max="100" value="55" style="margin-left:auto;">
+  </div>
+
+  <div class="moods" id="moods">
+    <button data-mood="debug" class="active">#debugging-2am</button>
+    <button data-mood="standup">#standup-hell</button>
+    <button data-mood="merge">#merge-conflict</button>
+    <button data-mood="deploy">#deploy-friday</button>
+    <button data-mood="review">#code-review-anxiety</button>
+  </div>
+</footer>
+
+<script>
+/* =========================================================
+   CONFIG — paste your own playlist IDs here
+   YouTube: open your playlist, copy the id after "list=" in the URL
+   Spotify: open your playlist -> Share -> Copy link, id is after "playlist/"
+   ========================================================= */
+const CONFIG = {
+  youtubePlaylistId: 'PLC6vl-sljUT0',   // double-check this — YouTube playlist IDs are usually ~34 chars long, this looks like it may have been cut off when copying
+  spotifyPlaylistId: '',   // e.g. '37i9dQZF1xxxxxxxxxxx'
+  operatorName: 'DEV_01'   // shown in the HUD strip up top — change to whatever you want displayed
+};
+document.getElementById('hudUser').textContent = CONFIG.operatorName;
+
+// ---------- mood/code content ----------
+const MOODS = {
+  debug: {
+    accent: '#6ee7b7', label: '#debugging-2am',
+    commits: ['fix: it works on my machine','chore: added more console.logs','fix: actually fix the fix from before'],
+    code: [
+      { t:'kw', v:'while' }, { t:'', v:' (' }, { t:'fn', v:'coffee' }, { t:'', v:' > 0) {\n  ' },
+      { t:'kw', v:'try' }, { t:'', v:' {\n    ' }, { t:'fn', v:'fixBug' }, { t:'', v:'();\n  } ' },
+      { t:'kw', v:'catch' }, { t:'', v:' (e) {\n    ' }, { t:'fn', v:'blameFramework' }, { t:'', v:'();\n  }\n}' },
+      { t:'cm', v:'\n// 47 tabs open, 3 are Stack Overflow' }
+    ]
+  },
+  standup: {
+    accent: '#a78bfa', label: '#standup-hell',
+    commits: ['chore: prep fake progress update','fix: nothing, just avoiding eye contact'],
+    code: [
+      { t:'kw', v:'function' }, { t:'', v:' ' }, { t:'fn', v:'standup' }, { t:'', v:'() {\n  ' },
+      { t:'kw', v:'return' }, { t:'', v:' {\n    yesterday: ' }, { t:'str', v:'"stuff"' }, { t:'', v:',\n    today: ' },
+      { t:'str', v:'"more stuff"' }, { t:'', v:',\n    blockers: ' }, { t:'str', v:'"none (lying)"' }, { t:'', v:'\n  };\n}' }
+    ]
+  },
+  merge: {
+    accent: '#fbbf24', label: '#merge-conflict',
+    commits: ['fix: resolved 200 conflicts, sanity: 0','chore: git merge --abort (again)'],
+    code: [
+      { t:'cm', v:'<<<<<<< HEAD\n' }, { t:'fn', v:'const' }, { t:'', v:' truth = ' }, { t:'str', v:"'mine'" }, { t:'', v:';\n' },
+      { t:'cm', v:'=======\n' }, { t:'fn', v:'const' }, { t:'', v:' truth = ' }, { t:'str', v:"'theirs'" }, { t:'', v:';\n' },
+      { t:'cm', v:'>>>>>>> feature/i-was-right' }
+    ]
+  },
+  deploy: {
+    accent: '#f97373', label: '#deploy-friday',
+    commits: ['deploy: to prod, on a Friday, no regrets','fix: rollback (see above)'],
+    code: [
+      { t:'kw', v:'if' }, { t:'', v:' (day === ' }, { t:'str', v:"'Friday'" }, { t:'', v:') {\n  ' },
+      { t:'fn', v:'deployToProd' }, { t:'', v:'();\n  ' }, { t:'fn', v:'closeLaptop' }, { t:'', v:'();\n  ' },
+      { t:'fn', v:'turnOffPhone' }, { t:'', v:'();\n}' }, { t:'cm', v:'\n// what could go wrong' }
+    ]
+  },
+  review: {
+    accent: '#7dd3fc', label: '#code-review-anxiety',
+    commits: ['chore: renamed x to xValue as requested','fix: addressed 1 of 34 comments'],
+    code: [
+      { t:'cm', v:'// nit: consider renaming this\n' }, { t:'kw', v:'const' }, { t:'', v:' x ' },
+      { t:'', v:'= ' }, { t:'fn', v:'getData' }, { t:'', v:'();\n' }, { t:'cm', v:'// LGTM but why though' }
+    ]
+  }
+};
+let currentMood = 'debug';
+
+const gutter = document.getElementById('gutter');
+for(let i=1;i<=14;i++){ const d=document.createElement('div'); d.textContent=i; gutter.appendChild(d); }
+
+const codeArea = document.getElementById('codeArea');
+let typeToken = null;
+
+function renderMood(moodKey){
+  const mood = MOODS[moodKey];
+  document.documentElement.style.setProperty('--accent', mood.accent);
+  document.getElementById('orb').style.background = `radial-gradient(circle, ${mood.accent} 0%, transparent 70%)`;
+  document.getElementById('commitTicker').textContent = mood.commits[Math.floor(Math.random()*mood.commits.length)];
+  document.querySelectorAll('.moods button').forEach(b=>b.classList.toggle('active', b.dataset.mood===moodKey));
+  if(typeToken) typeToken.cancelled = true;
+  const token = { cancelled:false };
+  typeToken = token;
+  typeOut(mood.code, token);
+}
+
+async function typeOut(tokens, token){
+  codeArea.innerHTML = '';
+  for(const seg of tokens){
+    const span = document.createElement('span');
+    if(seg.t) span.className = seg.t;
+    codeArea.appendChild(span);
+    for(const ch of seg.v){
+      if(token.cancelled) return;
+      span.textContent += ch;
+      await new Promise(r=>setTimeout(r, ch===' '?4:14));
+    }
+  }
+  if(token.cancelled) return;
+  const caret = document.createElement('span');
+  caret.className = 'caret';
+  codeArea.appendChild(caret);
+}
+
+document.querySelectorAll('.moods button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    currentMood = btn.dataset.mood;
+    renderMood(currentMood);
+    if(audioStarted) scheduleChord();
+  });
+});
+
+// ---------- HUD clock + signal ----------
+function updateClock(){
+  const now = new Date();
+  document.getElementById('hudDate').textContent = now.toLocaleDateString('en-GB', { day:'2-digit', month:'short', year:'numeric' });
+  document.getElementById('hudTime').textContent = now.toLocaleTimeString('en-GB');
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+const signalFrames = ['▂▄▆█▆▄▂','▁▃▅▇▅▃▁','▃▅▇█▇▅▃','▂▃▅▆▅▃▂'];
+setInterval(()=>{
+  document.getElementById('hudSignal').textContent = signalFrames[Math.floor(Math.random()*signalFrames.length)];
+}, 900);
+
+// ---------- fake live counter ----------
+const onlineEl = document.getElementById('onlineCount');
+let online = 312;
+setInterval(()=>{
+  online += Math.floor(Math.random()*7)-3;
+  online = Math.max(180, Math.min(600, online));
+  onlineEl.textContent = online;
+}, 2200);
+
+setInterval(()=>{
+  const mood = MOODS[currentMood];
+  const el = document.getElementById('commitTicker');
+  el.style.opacity = 0;
+  setTimeout(()=>{
+    el.textContent = mood.commits[Math.floor(Math.random()*mood.commits.length)];
+    el.style.opacity = 1;
+  }, 300);
+}, 6000);
+
+// ---------- visualizer ----------
+const viz = document.getElementById('viz');
+for(let i=0;i<10;i++){ const s=document.createElement('span'); s.style.height='4px'; viz.appendChild(s); }
+let vizPlaying = false;
+setInterval(()=>{
+  viz.querySelectorAll('span').forEach(s=>{
+    s.style.height = (vizPlaying ? (4 + Math.random()*18) : 4) + 'px';
+  });
+}, 220);
+
+// ---------- source tabs ----------
+const panels = {
+  youtube: document.getElementById('sourceYoutube'),
+  spotify: document.getElementById('sourceSpotify'),
+  synth: document.getElementById('sourceSynth')
+};
+document.querySelectorAll('.source-tabs button').forEach(btn=>{
+  btn.addEventListener('click', ()=>{
+    document.querySelectorAll('.source-tabs button').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    Object.values(panels).forEach(p=>p.style.display='none');
+    panels[btn.dataset.src].style.display = btn.dataset.src==='youtube' ? 'flex' : (btn.dataset.src==='synth' ? 'flex' : 'block');
+    vizPlaying = false;
+    if(btn.dataset.src !== 'synth' && audioStarted && Tone.Transport.state==='started'){ Tone.Transport.pause(); }
+  });
+});
+
+// ---------- YouTube player ----------
+let ytPlayer;
+function onYouTubeIframeAPIReady(){
+  if(!CONFIG.youtubePlaylistId) return;
+  ytPlayer = new YT.Player('ytPlayer', {
+    height: '68', width: '120',
+    playerVars: { listType:'playlist', list: CONFIG.youtubePlaylistId, shuffle:1, autoplay:0, controls:0, modestbranding:1 },
+    events: {
+      onReady: ()=>{ document.getElementById('ytTrackName').textContent = 'Ready — hit play'; },
+      onStateChange: (e)=>{
+        vizPlaying = (e.data === YT.PlayerState.PLAYING);
+        document.getElementById('ytPlay').textContent = vizPlaying ? '❚❚' : '▶';
+        try{
+          const data = ytPlayer.getVideoData();
+          if(data && data.title) document.getElementById('ytTrackName').textContent = data.title;
+        }catch(err){}
+      }
+    }
+  });
+}
+document.getElementById('ytPlay').addEventListener('click', ()=>{
+  if(!ytPlayer) return;
+  const state = ytPlayer.getPlayerState();
+  if(state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo(); else ytPlayer.playVideo();
+});
+document.getElementById('ytPrev').addEventListener('click', ()=>{ if(ytPlayer) ytPlayer.previousVideo(); });
+document.getElementById('ytNext').addEventListener('click', ()=>{ if(ytPlayer) ytPlayer.nextVideo(); });
+document.getElementById('ytVol').addEventListener('input', (e)=>{ if(ytPlayer) ytPlayer.setVolume(Number(e.target.value)); });
+document.getElementById('ytMute').addEventListener('click', ()=>{
+  if(!ytPlayer) return;
+  if(ytPlayer.isMuted()){ ytPlayer.unMute(); document.getElementById('ytMute').textContent = '🔊'; }
+  else { ytPlayer.mute(); document.getElementById('ytMute').textContent = '🔇'; }
+});
+
+// ---------- Spotify embed ----------
+function loadSpotifyEmbed(){
+  const wrap = document.getElementById('spotifyEmbedWrap');
+  if(!CONFIG.spotifyPlaylistId){
+    wrap.innerHTML = '';
+    return;
+  }
+  const iframe = document.createElement('iframe');
+  iframe.src = `https://open.spotify.com/embed/playlist/${CONFIG.spotifyPlaylistId}?utm_source=generator&theme=0`;
+  iframe.width = '100%'; iframe.height = '152'; iframe.frameBorder = '0';
+  iframe.allow = 'autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture';
+  wrap.innerHTML = '';
+  wrap.appendChild(iframe);
+}
+
+// ---------- generative synth (fallback / third option) ----------
+let audioStarted = false;
+let padSynth, pluck, noise, loop;
+const SCALES = { debug:['C3','D#3','F3','G3','A#3'], standup:['A2','C3','E3','G3','A3'], merge:['D3','F3','G3','A3','C4'], deploy:['E3','G3','A3','B3','D4'], review:['F3','G3','A#3','C4','D4'] };
+
+function setupAudio(){
+  const reverb = new Tone.Reverb({decay:4, wet:.35}).toDestination();
+  padSynth = new Tone.PolySynth(Tone.Synth, { oscillator:{type:'sine'}, envelope:{attack:1.2, decay:.5, sustain:.6, release:2.5} }).connect(reverb);
+  padSynth.volume.value = -14;
+  pluck = new Tone.Synth({ oscillator:{type:'triangle'}, envelope:{attack:.01, decay:.3, sustain:0, release:.3} }).connect(reverb);
+  pluck.volume.value = -18;
+  Tone.Transport.bpm.value = 68;
+  scheduleChord();
+  Tone.Transport.start();
+}
+function scheduleChord(){
+  if(loop) loop.dispose();
+  const scale = SCALES[currentMood];
+  loop = new Tone.Loop((time)=>{
+    padSynth.triggerAttackRelease(scale.slice(0,3), '2n', time);
+    if(Math.random() > 0.4){
+      const note = scale[Math.floor(Math.random()*scale.length)];
+      pluck.triggerAttackRelease(note, '8n', time + Tone.Time('4n').toSeconds());
+    }
+  }, '2n').start(0);
+}
+document.getElementById('vol').addEventListener('input', (e)=>{
+  Tone.Destination.volume.value = Tone.gainToDb(e.target.value/100);
+});
+document.getElementById('playBtn').addEventListener('click', async ()=>{
+  if(!audioStarted){ await Tone.start(); setupAudio(); audioStarted = true; document.getElementById('playBtn').textContent='❚❚'; vizPlaying=true; }
+  else if(Tone.Transport.state === 'started'){ Tone.Transport.pause(); document.getElementById('playBtn').textContent='▶'; vizPlaying=false; }
+  else { Tone.Transport.start(); document.getElementById('playBtn').textContent='❚❚'; vizPlaying=true; }
+});
+
+document.getElementById('enterBtn').addEventListener('click', ()=>{
+  const typed = document.getElementById('nameInput').value.trim();
+  const name = typed || 'DEV_01';
+  localStorage.setItem('localhostChillOperator', name);
+  CONFIG.operatorName = name;
+  document.getElementById('hudUser').textContent = name;
+  document.getElementById('gate').style.display = 'none';
+  loadSpotifyEmbed();
+  startSessionTimer();
+});
+
+document.getElementById('resetOperator').addEventListener('click', (e)=>{
+  e.preventDefault();
+  localStorage.removeItem('localhostChillOperator');
+  document.getElementById('nameInput').value = '';
+  document.getElementById('nameInput').placeholder = 'your name';
+  document.getElementById('enterBtn').textContent = '▶ npm run chill';
+  document.getElementById('resetOperator').style.display = 'none';
+});
+
+(function initLoginState(){
+  const saved = localStorage.getItem('localhostChillOperator');
+  if(saved){
+    document.getElementById('nameInput').value = saved;
+    document.getElementById('enterBtn').textContent = `▶ continue as ${saved}`;
+    document.getElementById('resetOperator').style.display = 'inline';
+  }
+})();
+
+// ---------- sidebar: system meters ----------
+function jitterMeter(id, barId, base, range){
+  const val = Math.max(4, Math.min(97, Math.round(base + (Math.random()*range*2 - range))));
+  document.getElementById(id).textContent = val + '%';
+  document.getElementById(barId).style.width = val + '%';
+}
+setInterval(()=>{
+  jitterMeter('cpuVal','cpuBar',44,12);
+  jitterMeter('memVal','memBar',60,8);
+  jitterMeter('focusVal','focusBar',85,10);
+}, 2400);
+
+// ---------- sidebar: activity log ----------
+const LOG_LINES = [
+  'watching cursor blink...',
+  'googling the error message',
+  'reading the same line 4th time',
+  'renamed variable, fixed nothing',
+  'opened 3 more Chrome tabs',
+  'staring into the void',
+  'coffee cup: empty',
+  'commit message: "fix"',
+  'reconsidering career choices',
+  'it compiled. nobody knows why',
+  'added a TODO, will never do it',
+  'reheating coffee, 3rd time'
+];
+const logList = document.getElementById('logList');
+function pushLog(){
+  const line = LOG_LINES[Math.floor(Math.random()*LOG_LINES.length)];
+  const now = new Date().toLocaleTimeString('en-GB', {hour:'2-digit', minute:'2-digit'});
+  const div = document.createElement('div');
+  div.innerHTML = `<b>${now}</b> ${line}`;
+  logList.appendChild(div);
+  while(logList.children.length > 7) logList.removeChild(logList.firstChild);
+}
+pushLog();
+setInterval(pushLog, 4200);
+
+// ---------- sidebar: session timer ----------
+let sessionSeconds = 0, sessionTimerHandle = null;
+function startSessionTimer(){
+  if(sessionTimerHandle) return;
+  sessionTimerHandle = setInterval(()=>{
+    sessionSeconds++;
+    const h = String(Math.floor(sessionSeconds/3600)).padStart(2,'0');
+    const m = String(Math.floor((sessionSeconds%3600)/60)).padStart(2,'0');
+    const s = String(sessionSeconds%60).padStart(2,'0');
+    document.getElementById('sessionTimer').textContent = `${h}:${m}:${s}`;
+  }, 1000);
+}
+
+renderMood(currentMood);
+</script>
+</body>
+</html>
