@@ -190,6 +190,17 @@
   .moods button:hover{color:var(--text); border-color:var(--accent);}
   .moods button.active{color:var(--void); background:var(--accent); border-color:var(--accent);}
 
+  .brand-footer{
+    position:fixed; bottom:6px; left:50%; transform:translateX(-50%); z-index:60;
+    display:flex; align-items:center; gap:10px; padding:4px 14px; border-radius:20px;
+    background:rgba(17,22,29,.85); border:1px solid var(--border); backdrop-filter:blur(4px);
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); white-space:nowrap;
+  }
+  .brand-footer .divider{ color:var(--border); }
+  .brand-footer a{ color:var(--dim); display:flex; align-items:center; gap:4px; text-decoration:none; transition:.2s; }
+  .brand-footer a:hover{ color:var(--accent); }
+  .brand-footer svg{ width:12px; height:12px; }
+
   ::-webkit-scrollbar{width:8px;}
   ::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
 </style>
@@ -308,6 +319,17 @@
     <button data-mood="review">#code-review-anxiety</button>
   </div>
 </footer>
+
+<div class="brand-footer">
+  <span>🇮🇳 Developed in Bharat with ❤️ by RS Labs</span>
+  <span class="divider">|</span>
+  <span>© 2026 RS Labs. All rights reserved.</span>
+  <span class="divider">|</span>
+  <a href="https://instagram.com/ms.tech09" target="_blank" rel="noopener">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="5"/><circle cx="12" cy="12" r="4"/><circle cx="17.5" cy="6.5" r="1"/></svg>
+    @ms.tech09
+  </a>
+</div>
 
 <script>
 /* =========================================================
