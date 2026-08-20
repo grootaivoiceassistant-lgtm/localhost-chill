@@ -191,10 +191,10 @@
   .moods button.active{color:var(--void); background:var(--accent); border-color:var(--accent);}
 
   .brand-footer{
-    position:fixed; bottom:6px; left:50%; transform:translateX(-50%); z-index:60;
-    display:flex; align-items:center; gap:10px; padding:4px 14px; border-radius:20px;
-    background:rgba(17,22,29,.85); border:1px solid var(--border); backdrop-filter:blur(4px);
-    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); white-space:nowrap;
+    width:100%; flex-shrink:0; z-index:2;
+    display:flex; align-items:center; justify-content:center; gap:10px; padding:6px 14px;
+    background:var(--panel); border-top:1px solid var(--border);
+    font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); white-space:nowrap; overflow:hidden;
   }
   .brand-footer .divider{ color:var(--border); }
   .brand-footer a{ color:var(--dim); display:flex; align-items:center; gap:4px; text-decoration:none; transition:.2s; }
