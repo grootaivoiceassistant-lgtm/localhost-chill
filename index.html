@@ -489,6 +489,7 @@
   <div class="chat-tabs">
     <button data-tab="chat" class="active">💬 Live Chat</button>
     <button data-tab="suggest">🎵 Suggest Song</button>
+    <button data-tab="private">🔒 Private</button>
   </div>
   <div id="chatTabBody" class="chat-body"></div>
   <div id="chatInputRow" class="chat-input-row">
@@ -500,6 +501,27 @@
     <input type="text" id="suggestArtist" placeholder="artist (optional)" maxlength="100">
     <button type="submit">Suggest 🎵</button>
   </form>
+  <div id="privatePanel" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
+    <div id="roomJoinView" style="padding:12px; display:flex; flex-direction:column; gap:8px; overflow-y:auto;">
+      <div style="font-family:'JetBrains Mono',monospace;font-size:10px;color:var(--dim);line-height:1.5;">Click a name below to start a private chat with them.</div>
+      <div id="userListWrap"></div>
+      <div style="text-align:center;font-size:10px;color:var(--dim);margin-top:6px;">— or use a room code —</div>
+      <button id="createRoomBtn" class="share-btn" style="padding:9px;">+ create new room</button>
+      <input type="text" id="joinRoomInput" placeholder="enter room code" maxlength="12">
+      <button id="joinRoomBtn" class="share-btn" style="padding:9px;">join room</button>
+    </div>
+    <div id="roomChatView" style="display:none; flex:1; flex-direction:column; overflow:hidden;">
+      <div style="padding:8px 12px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center;">
+        <span style="font-family:'JetBrains Mono',monospace;font-size:11px;color:var(--accent);">room: <b id="activeRoomCode"></b></span>
+        <button id="leaveRoomBtn" class="share-btn" style="padding:3px 8px;">leave</button>
+      </div>
+      <div id="roomChatBody" class="chat-body"></div>
+      <div class="chat-input-row">
+        <input type="text" id="roomChatInput" placeholder="private message..." maxlength="200">
+        <button id="roomChatSend">Send</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script>
@@ -793,6 +815,7 @@ document.getElementById('enterBtn').addEventListener('click', ()=>{
   document.getElementById('gate').style.display = 'none';
   loadSpotifyEmbed();
   startSessionTimer();
+  startPresence();
 });
 
 document.getElementById('resetOperator').addEventListener('click', (e)=>{
@@ -1053,12 +1076,117 @@ document.querySelectorAll('.chat-tabs button').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     document.querySelectorAll('.chat-tabs button').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
-    const isChat = btn.dataset.tab === 'chat';
-    document.getElementById('chatTabBody').style.display = isChat ? 'flex' : 'none';
-    document.getElementById('chatInputRow').style.display = isChat ? 'flex' : 'none';
-    document.getElementById('suggestForm').style.display = isChat ? 'none' : 'flex';
+    const tab = btn.dataset.tab;
+    document.getElementById('chatTabBody').style.display = tab==='chat' ? 'flex' : 'none';
+    document.getElementById('chatInputRow').style.display = tab==='chat' ? 'flex' : 'none';
+    document.getElementById('suggestForm').style.display = tab==='suggest' ? 'flex' : 'none';
+    document.getElementById('privatePanel').style.display = tab==='private' ? 'flex' : 'none';
   });
 });
+
+// ---------- presence + online user list ----------
+function getMyUid(){
+  let uid = localStorage.getItem('chillUid');
+  if(!uid){ uid = 'u_' + Math.random().toString(36).slice(2,10); localStorage.setItem('chillUid', uid); }
+  return uid;
+}
+const myUid = getMyUid();
+function startPresence(){
+  if(!fbDb) return;
+  updatePresence();
+  setInterval(updatePresence, 20000);
+  fbDb.collection('presence').onSnapshot(snap=>{
+    const now = Date.now();
+    const list = [];
+    snap.forEach(doc=>{
+      const d = doc.data();
+      if(d.uid === myUid) return;
+      const seenMs = (d.lastSeen && d.lastSeen.toMillis) ? d.lastSeen.toMillis() : 0;
+      if(now - seenMs < 60000) list.push(d);
+    });
+    renderUserList(list);
+  });
+}
+function updatePresence(){
+  fbDb.collection('presence').doc(myUid).set({
+    uid: myUid,
+    name: CONFIG.operatorName || 'anon',
+    lastSeen: firebase.firestore.FieldValue.serverTimestamp()
+  });
+}
+function renderUserList(list){
+  const wrap = document.getElementById('userListWrap');
+  if(!wrap) return;
+  if(!list.length){ wrap.innerHTML = '<div class="chat-disabled-note" style="padding:8px 0;">no one else online right now</div>'; return; }
+  wrap.innerHTML = '';
+  list.forEach(u=>{
+    const btn = document.createElement('button');
+    btn.className = 'share-btn';
+    btn.style.cssText = 'width:100%; text-align:left; padding:8px 10px; margin-bottom:6px; display:block;';
+    btn.textContent = '🟢 ' + (u.name || 'anon');
+    btn.addEventListener('click', ()=>{
+      const room = [myUid, u.uid].sort().join('__');
+      joinRoom(room, u.name || 'anon');
+    });
+    wrap.appendChild(btn);
+  });
+}
+
+// ---------- private room chat ----------
+let currentRoom = null, roomUnsub = null;
+function genRoomCode(){ return Math.random().toString(36).slice(2,10).toUpperCase(); }
+function joinRoom(code, label){
+  if(!fbDb){ showToast('set up Firebase first'); return; }
+  currentRoom = code;
+  document.getElementById('activeRoomCode').textContent = label || code;
+  document.getElementById('roomJoinView').style.display = 'none';
+  document.getElementById('roomChatView').style.display = 'flex';
+  if(roomUnsub) roomUnsub();
+  roomUnsub = fbDb.collection('private_rooms').doc(code).collection('messages')
+    .orderBy('ts','desc').limit(50)
+    .onSnapshot(snap=>{
+      const body = document.getElementById('roomChatBody');
+      const msgs = [];
+      snap.forEach(d=>msgs.push(d.data()));
+      msgs.reverse();
+      body.innerHTML = msgs.map(m=>`<div class="chat-msg"><b>${escapeHtml(m.name||'anon')}:</b> ${escapeHtml(m.text||'')}</div>`).join('');
+      body.scrollTop = body.scrollHeight;
+    }, err=>{
+      document.getElementById('roomChatBody').innerHTML = '<div class="chat-disabled-note">Could not open this room — check Firestore rules allow private_rooms.</div>';
+    });
+}
+document.getElementById('createRoomBtn').addEventListener('click', ()=>{
+  const code = genRoomCode();
+  joinRoom(code);
+  if(navigator.clipboard) navigator.clipboard.writeText(code).then(()=>showToast('room code copied: ' + code));
+  else showToast('your room code: ' + code);
+});
+document.getElementById('joinRoomBtn').addEventListener('click', ()=>{
+  const code = document.getElementById('joinRoomInput').value.trim().toUpperCase();
+  if(!code) return;
+  joinRoom(code);
+});
+document.getElementById('leaveRoomBtn').addEventListener('click', ()=>{
+  if(roomUnsub) roomUnsub();
+  currentRoom = null;
+  document.getElementById('roomChatView').style.display = 'none';
+  document.getElementById('roomJoinView').style.display = 'flex';
+  document.getElementById('joinRoomInput').value = '';
+});
+function sendRoomMessage(){
+  const input = document.getElementById('roomChatInput');
+  const text = input.value.trim();
+  if(!text || !fbDb || !currentRoom) return;
+  fbDb.collection('private_rooms').doc(currentRoom).collection('messages').add({
+    name: CONFIG.operatorName || 'anon',
+    text: text,
+    ts: firebase.firestore.FieldValue.serverTimestamp()
+  });
+  input.value = '';
+  playUIBlip(600);
+}
+document.getElementById('roomChatSend').addEventListener('click', sendRoomMessage);
+document.getElementById('roomChatInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendRoomMessage(); });
 initFirebaseChat();
 
 renderMood(currentMood);
