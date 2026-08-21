@@ -4,10 +4,22 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>localhost:chill — lo-fi for devs who should be debugging</title>
+<meta name="description" content="English + Bollywood on shuffle, generative lo-fi, and a JARVIS-style HUD — built for developers who opened a new tab instead of fixing the bug.">
+<meta property="og:type" content="website">
+<meta property="og:title" content="localhost:chill — lo-fi for devs who should be debugging">
+<meta property="og:description" content="English + Bollywood on shuffle, generative lo-fi, and a JARVIS-style HUD — built for developers who opened a new tab instead of fixing the bug.">
+<meta property="og:image" content="/og-image.png">
+<meta property="og:url" content="https://localhost-chill.vercel.app/">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:title" content="localhost:chill">
+<meta name="twitter:description" content="lo-fi for devs who should be debugging">
+<meta name="twitter:image" content="/og-image.png">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'%3E%3Crect width='100' height='100' rx='18' fill='%230a0e14'/%3E%3Ctext x='50' y='68' font-size='60' text-anchor='middle' fill='%236ee7b7' font-family='monospace'%3E%3E_%3C/text%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/tone/14.8.49/Tone.js"></script>
 <script src="https://www.youtube.com/iframe_api"></script>
+<script defer src="/_vercel/insights/script.js"></script>
 <style>
   :root{
     --void: #0a0e14;
@@ -74,6 +86,50 @@
     95%{ opacity:.6; transform:translateX(0); }
   }
   .glitchy{ animation: glitchFlicker 6s infinite; }
+
+  /* ---- custom cursor ---- */
+  body, a, button, input{ cursor:none !important; }
+  .cx-cursor{ position:fixed; top:0; left:0; width:18px; height:18px; pointer-events:none; z-index:9999; transform:translate(-50%,-50%); transition: width .15s, height .15s; }
+  .cx-cursor::before, .cx-cursor::after{ content:''; position:absolute; background:var(--accent); }
+  .cx-cursor::before{ width:100%; height:1px; top:50%; left:0; transform:translateY(-50%); }
+  .cx-cursor::after{ height:100%; width:1px; left:50%; top:0; transform:translateX(-50%); }
+  .cx-dot{ position:fixed; top:0; left:0; width:3px; height:3px; border-radius:50%; background:var(--accent); pointer-events:none; z-index:9999; transform:translate(-50%,-50%); }
+  .cx-cursor.hovering{ width:30px; height:30px; }
+
+  /* ---- boot sequence ---- */
+  #boot{
+    position:fixed; inset:0; background:var(--void); z-index:300;
+    display:flex; align-items:center; justify-content:center; flex-direction:column; gap:10px;
+    font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--mint);
+  }
+  #bootLines{ width:340px; }
+  #bootLines div{ opacity:0; margin-bottom:4px; animation: fadeInLog .3s ease forwards; }
+  .boot-bar-track{ width:340px; height:4px; background:var(--panel-2); border-radius:2px; overflow:hidden; margin-top:8px; }
+  .boot-bar-fill{ height:100%; width:0%; background:var(--mint); transition: width .3s linear; }
+
+  /* ---- accent picker ---- */
+  .accent-picker{ display:flex; gap:8px; justify-content:center; margin-top:4px; }
+  .accent-swatch{
+    width:18px; height:18px; border-radius:50%; cursor:none; border:2px solid transparent; transition:.2s; padding:0;
+  }
+  .accent-swatch.selected{ border-color:var(--text); transform:scale(1.15); }
+
+  /* ---- toast ---- */
+  #toast{
+    position:fixed; bottom:40px; left:50%; transform:translateX(-50%) translateY(20px); z-index:200;
+    background:var(--panel); border:1px solid var(--accent); color:var(--accent); padding:8px 18px; border-radius:20px;
+    font-family:'JetBrains Mono',monospace; font-size:12px; opacity:0; pointer-events:none; transition:.3s;
+  }
+  #toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
+  .share-btn{
+    background:transparent; border:1px solid var(--border); color:var(--dim); font-family:'JetBrains Mono',monospace;
+    font-size:11px; padding:4px 10px; border-radius:5px; cursor:none; transition:.2s;
+  }
+  .share-btn:hover{ color:var(--accent); border-color:var(--accent); }
+
+  .sfx-toggle{ display:flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); }
+  .sfx-toggle input{ accent-color:var(--accent); cursor:none; }
   #gate{
     position:fixed; inset:0; background:var(--void); z-index:100;
     display:flex; align-items:center; justify-content:center; flex-direction:column; gap:16px; text-align:center;
@@ -173,6 +229,13 @@
   .config-note{ font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim); padding:10px 0; }
   .config-note code{ color:var(--amber); }
 
+  .yt-spinner{
+    width:14px; height:14px; border:2px solid var(--border); border-top-color:var(--accent);
+    border-radius:50%; animation:spin .7s linear infinite; flex-shrink:0;
+  }
+  @keyframes spin{ to{ transform:rotate(360deg); } }
+  .yt-error{ color:#f97373 !important; }
+
   /* Synth panel */
   #sourceSynth{ display:flex; align-items:center; gap:16px; }
   #playBtn{
@@ -203,6 +266,36 @@
 
   ::-webkit-scrollbar{width:8px;}
   ::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+
+  /* ---- mobile responsive ---- */
+  @media (max-width: 768px){
+    body{ overflow-y:auto; height:auto; min-height:100vh; }
+    .cx-cursor, .cx-dot{ display:none; }
+    body, a, button, input{ cursor:auto !important; }
+
+    .hud-strip{ flex-wrap:wrap; gap:8px 16px; padding:8px 14px; }
+    .topbar{ flex-wrap:wrap; gap:8px; padding:10px 14px; }
+    .status-right{ flex-wrap:wrap; gap:8px; }
+
+    .editor{ flex-direction:column; overflow:visible; }
+    .gutter{ display:none; }
+    .code-wrap{ padding:16px; min-height:160px; }
+    .sidebar{ width:100%; border-left:none; border-top:1px solid var(--border); flex-direction:row; flex-wrap:wrap; gap:16px; padding:16px; }
+    .sidebar > div{ flex:1 1 140px; min-width:140px; }
+
+    .source-panel{ flex-wrap:wrap; }
+    #sourceYoutube{ flex-wrap:wrap; }
+    .yt-meta{ max-width:100%; }
+    #ytTrackName{ max-width:200px; }
+    .yt-controls button{ width:40px; height:40px; }
+    #playBtn{ width:44px; height:44px; }
+
+    .moods{ padding:10px 14px; }
+    .moods button{ padding:9px 14px; font-size:12px; }
+
+    #gate .login-box{ min-width:260px; padding:22px 20px; }
+    .brand-footer{ flex-wrap:wrap; font-size:9px; padding:8px; text-align:center; }
+  }
 </style>
 </head>
 <body>
@@ -215,6 +308,14 @@
 <div class="corner tr"></div>
 <div class="corner bl"></div>
 <div class="corner br"></div>
+<div class="cx-cursor" id="cxCursor"></div>
+<div class="cx-dot" id="cxDot"></div>
+<div id="toast"></div>
+
+<div id="boot">
+  <div id="bootLines"></div>
+  <div class="boot-bar-track"><div class="boot-bar-fill" id="bootBar"></div></div>
+</div>
 
 <div id="gate">
   <h1>localhost<span>:chill</span></h1>
@@ -224,6 +325,7 @@
     <input type="text" id="nameInput" placeholder="your name" autocomplete="off">
     <button id="enterBtn">▶ npm run chill</button>
     <button id="resetOperator" style="display:none;">not you? reset</button>
+    <div class="accent-picker" id="accentPicker"></div>
   </div>
 </div>
 
@@ -240,6 +342,7 @@
   <div class="status-right">
     <span>⎇ main</span>
     <span id="commitTicker">fix: it works on my machine</span>
+    <button class="share-btn" id="shareBtn">🔗 share vibe</button>
   </div>
 </header>
 
@@ -293,6 +396,7 @@
       <div id="ytTrackName">Add your playlist ID in CONFIG to start</div>
       <div class="yt-sub">shuffled · random on every visit</div>
     </div>
+    <div class="yt-spinner" id="ytSpinner" style="display:none;"></div>
     <input type="range" id="ytVol" min="0" max="100" value="70" style="width:70px;">
     <div class="viz" id="viz"></div>
   </div>
@@ -317,6 +421,7 @@
     <button data-mood="merge">#merge-conflict</button>
     <button data-mood="deploy">#deploy-friday</button>
     <button data-mood="review">#code-review-anxiety</button>
+    <label class="sfx-toggle"><input type="checkbox" id="typingSfxToggle"> typing sfx</label>
   </div>
 </footer>
 
@@ -421,6 +526,7 @@ async function typeOut(tokens, token){
     for(const ch of seg.v){
       if(token.cancelled) return;
       span.textContent += ch;
+      if(ch !== ' ' && ch !== '\n') playTypeTick();
       await new Promise(r=>setTimeout(r, ch===' '?4:14));
     }
   }
@@ -430,11 +536,20 @@ async function typeOut(tokens, token){
   codeArea.appendChild(caret);
 }
 
-document.querySelectorAll('.moods button').forEach(btn=>{
+document.querySelectorAll('.moods button[data-mood]').forEach(btn=>{
   btn.addEventListener('click', ()=>{
     currentMood = btn.dataset.mood;
     renderMood(currentMood);
-    if(audioStarted) scheduleChord();
+    playUIBlip(660);
+    if(audioStarted && padSynth){
+      padSynth.volume.rampTo(-40, .3);
+      pluck.volume.rampTo(-40, .3);
+      setTimeout(()=>{
+        scheduleChord();
+        padSynth.volume.rampTo(-14, .5);
+        pluck.volume.rampTo(-18, .5);
+      }, 320);
+    }
   });
 });
 
@@ -502,11 +617,22 @@ document.querySelectorAll('.source-tabs button').forEach(btn=>{
 let ytPlayer;
 function onYouTubeIframeAPIReady(){
   if(!CONFIG.youtubePlaylistId) return;
+  document.getElementById('ytSpinner').style.display = 'inline-block';
   ytPlayer = new YT.Player('ytPlayer', {
     height: '68', width: '120',
     playerVars: { listType:'playlist', list: CONFIG.youtubePlaylistId, shuffle:1, autoplay:0, controls:0, modestbranding:1 },
     events: {
-      onReady: ()=>{ document.getElementById('ytTrackName').textContent = 'Ready — hit play'; },
+      onReady: ()=>{
+        document.getElementById('ytSpinner').style.display = 'none';
+        document.getElementById('ytTrackName').textContent = 'Ready — hit play';
+        document.getElementById('ytTrackName').classList.remove('yt-error');
+      },
+      onError: ()=>{
+        document.getElementById('ytSpinner').style.display = 'none';
+        const el = document.getElementById('ytTrackName');
+        el.textContent = 'Playlist not loading — check your playlist ID in CONFIG';
+        el.classList.add('yt-error');
+      },
       onStateChange: (e)=>{
         vizPlaying = (e.data === YT.PlayerState.PLAYING);
         document.getElementById('ytPlay').textContent = vizPlaying ? '❚❚' : '▶';
@@ -662,6 +788,127 @@ function startSessionTimer(){
     document.getElementById('sessionTimer').textContent = `${h}:${m}:${s}`;
   }, 1000);
 }
+
+// ---------- custom cursor ----------
+const cxCursor = document.getElementById('cxCursor');
+const cxDot = document.getElementById('cxDot');
+document.addEventListener('mousemove', (e)=>{
+  cxCursor.style.left = e.clientX + 'px'; cxCursor.style.top = e.clientY + 'px';
+  cxDot.style.left = e.clientX + 'px'; cxDot.style.top = e.clientY + 'px';
+});
+document.addEventListener('mouseover', (e)=>{
+  if(e.target.closest('button, a, input')) cxCursor.classList.add('hovering');
+});
+document.addEventListener('mouseout', (e)=>{
+  if(e.target.closest('button, a, input')) cxCursor.classList.remove('hovering');
+});
+
+// ---------- boot sequence ----------
+const BOOT_LINES = [
+  'booting localhost:chill...',
+  'mounting /dev/vibes...',
+  'loading lo-fi kernel modules...',
+  'connecting to caffeine supply...',
+  'status: OK'
+];
+(function runBoot(){
+  const wrap = document.getElementById('bootLines');
+  const bar = document.getElementById('bootBar');
+  let i = 0;
+  function nextLine(){
+    if(i >= BOOT_LINES.length){
+      setTimeout(()=>{ document.getElementById('boot').style.display = 'none'; }, 250);
+      return;
+    }
+    const d = document.createElement('div');
+    d.textContent = '> ' + BOOT_LINES[i];
+    wrap.appendChild(d);
+    bar.style.width = Math.round(((i+1)/BOOT_LINES.length)*100) + '%';
+    i++;
+    setTimeout(nextLine, 260);
+  }
+  nextLine();
+})();
+
+// ---------- accent picker ----------
+const ACCENTS = [
+  { hex:'#6ee7b7', name:'mint' }, { hex:'#a78bfa', name:'violet' }, { hex:'#fbbf24', name:'amber' },
+  { hex:'#7dd3fc', name:'cyan' }, { hex:'#f97373', name:'red' }
+];
+(function buildAccentPicker(){
+  const picker = document.getElementById('accentPicker');
+  const saved = localStorage.getItem('localhostChillAccent');
+  ACCENTS.forEach(a=>{
+    const sw = document.createElement('button');
+    sw.className = 'accent-swatch' + (saved===a.hex ? ' selected' : '');
+    sw.style.background = a.hex;
+    sw.title = a.name;
+    sw.addEventListener('click', ()=>{
+      document.documentElement.style.setProperty('--accent', a.hex);
+      localStorage.setItem('localhostChillAccent', a.hex);
+      document.querySelectorAll('.accent-swatch').forEach(s=>s.classList.remove('selected'));
+      sw.classList.add('selected');
+      playUIBlip(500);
+    });
+    picker.appendChild(sw);
+  });
+  if(saved) document.documentElement.style.setProperty('--accent', saved);
+})();
+
+// ---------- share your vibe ----------
+function showToast(msg){
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+document.getElementById('shareBtn').addEventListener('click', ()=>{
+  const url = `${location.origin}${location.pathname}?mood=${currentMood}&t=${Date.now()}`;
+  if(navigator.clipboard){
+    navigator.clipboard.writeText(url).then(()=>showToast('vibe link copied to clipboard')).catch(()=>showToast(url));
+  } else {
+    showToast(url);
+  }
+  playUIBlip(720);
+});
+(function checkSharedMood(){
+  const params = new URLSearchParams(location.search);
+  const sharedMood = params.get('mood');
+  if(sharedMood && MOODS[sharedMood]){
+    currentMood = sharedMood;
+  }
+})();
+
+// ---------- UI sound effects ----------
+let uiSynth = null, typeSynth = null, lastTypeTick = 0;
+function ensureSfxSynths(){
+  if(uiSynth) return;
+  uiSynth = new Tone.Synth({ oscillator:{type:'sine'}, envelope:{attack:.001, decay:.06, sustain:0, release:.06} }).toDestination();
+  uiSynth.volume.value = -20;
+  typeSynth = new Tone.Synth({ oscillator:{type:'square'}, envelope:{attack:.001, decay:.015, sustain:0, release:.01} }).toDestination();
+  typeSynth.volume.value = -32;
+}
+function playUIBlip(freq){
+  if(Tone.context.state !== 'running') return;
+  ensureSfxSynths();
+  uiSynth.triggerAttackRelease(freq, '32n');
+}
+function playTypeTick(){
+  if(!document.getElementById('typingSfxToggle').checked) return;
+  if(Tone.context.state !== 'running') return;
+  const now = performance.now();
+  if(now - lastTypeTick < 18) return;
+  lastTypeTick = now;
+  ensureSfxSynths();
+  typeSynth.triggerAttackRelease(300 + Math.random()*80, '64n');
+}
+document.querySelectorAll('button').forEach(btn=>{
+  btn.addEventListener('mouseenter', ()=>playUIBlip(880));
+});
+document.getElementById('enterBtn').addEventListener('click', async ()=>{
+  if(Tone.context.state !== 'running') await Tone.start();
+  ensureSfxSynths();
+});
 
 renderMood(currentMood);
 </script>
