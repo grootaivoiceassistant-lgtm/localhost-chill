@@ -550,15 +550,7 @@
    Spotify: open your playlist -> Share -> Copy link, id is after "playlist/"
    ========================================================= */
 const CONFIG = {
-  youtubePlaylistId: 'PLC6vl-sljUT0',   // fallback/default playlist — used for any mood below left blank
-  moodPlaylists: {
-    // set a different YouTube playlist ID per mood — leave a mood blank to fall back to youtubePlaylistId above
-    debug: 'PLBGyhyRXT4cc',
-    standup: 'PLarKZ1vbOcCI',
-    merge: 'PLY1-z8dugL7E',
-    deploy: 'PLZhzYoPCNMBc',
-    review: 'PLZiVPA5SFdgg'
-  },
+  youtubePlaylistId: 'PLC6vl-sljUT0',   // double-check this — YouTube playlist IDs are usually ~34 chars long, this looks like it may have been cut off when copying
   spotifyPlaylistId: '',   // e.g. '37i9dQZF1xxxxxxxxxxx'
   operatorName: 'DEV_01',   // shown in the HUD strip up top — change to whatever you want displayed
   firebase: {
@@ -622,8 +614,7 @@ const MOODS = {
     ]
   }
 };
-const MOOD_KEYS = Object.keys(MOODS);
-let currentMood = MOOD_KEYS[Math.floor(Math.random() * MOOD_KEYS.length)];
+let currentMood = 'debug';
 
 const gutter = document.getElementById('gutter');
 for(let i=1;i<=14;i++){ const d=document.createElement('div'); d.textContent=i; gutter.appendChild(d); }
@@ -677,7 +668,6 @@ document.querySelectorAll('.moods button[data-mood]').forEach(btn=>{
       }, 320);
     }
     if(fbDb) updatePresence();
-    loadMoodPlaylist(currentMood);
   });
 });
 
@@ -745,67 +735,27 @@ document.querySelectorAll('.source-tabs button').forEach(btn=>{
 
 // ---------- YouTube player ----------
 let ytPlayer;
-function getPlaylistForMood(mood){
-  return (CONFIG.moodPlaylists && CONFIG.moodPlaylists[mood]) || CONFIG.youtubePlaylistId;
-}
-
-let ytSpinnerTimer = null;
-function showYtSpinner(){
-  document.getElementById('ytSpinner').style.display = 'inline-block';
-  clearTimeout(ytSpinnerTimer);
-  ytSpinnerTimer = setTimeout(()=>{
-    document.getElementById('ytSpinner').style.display = 'none';
-    const el = document.getElementById('ytTrackName');
-    el.textContent = 'Playlist not loading — check your playlist ID in CONFIG';
-    el.classList.add('yt-error');
-  }, 7000);
-}
-function hideYtSpinner(){
-  clearTimeout(ytSpinnerTimer);
-  document.getElementById('ytSpinner').style.display = 'none';
-}
-
-let ytCurrentLoadedPlaylist = null;
-function loadMoodPlaylist(mood){
-  const pid = getPlaylistForMood(mood);
-  if(!ytPlayer || !pid) return;
-  ytCurrentLoadedPlaylist = pid;
-  showYtSpinner();
-  document.getElementById('ytTrackName').classList.remove('yt-error');
-  try{ ytPlayer.loadPlaylist({ list: pid, listType:'playlist', index:0 }); }catch(err){}
-}
-
 function onYouTubeIframeAPIReady(){
-  const initialPlaylist = getPlaylistForMood(currentMood);
-  if(!initialPlaylist) return;
-  ytCurrentLoadedPlaylist = initialPlaylist;
-  showYtSpinner();
+  if(!CONFIG.youtubePlaylistId) return;
+  document.getElementById('ytSpinner').style.display = 'inline-block';
   ytPlayer = new YT.Player('ytPlayer', {
     height: '68', width: '120',
-    playerVars: { listType:'playlist', list: initialPlaylist, shuffle:1, autoplay:0, controls:0, modestbranding:1 },
+    playerVars: { listType:'playlist', list: CONFIG.youtubePlaylistId, shuffle:1, autoplay:0, controls:0, modestbranding:1 },
     events: {
       onReady: ()=>{
-        hideYtSpinner();
+        document.getElementById('ytSpinner').style.display = 'none';
         document.getElementById('ytTrackName').textContent = 'Ready — hit play';
         document.getElementById('ytTrackName').classList.remove('yt-error');
       },
       onError: ()=>{
+        document.getElementById('ytSpinner').style.display = 'none';
         const el = document.getElementById('ytTrackName');
-        if(ytCurrentLoadedPlaylist && ytCurrentLoadedPlaylist !== CONFIG.youtubePlaylistId && CONFIG.youtubePlaylistId){
-          ytCurrentLoadedPlaylist = CONFIG.youtubePlaylistId;
-          el.textContent = 'This mood\'s playlist failed — falling back to default';
-          showYtSpinner();
-          try{ ytPlayer.loadPlaylist({ list: CONFIG.youtubePlaylistId, listType:'playlist', index:0 }); }catch(err){}
-        } else {
-          hideYtSpinner();
-          el.textContent = 'Playlist not loading — check your playlist ID in CONFIG';
-          el.classList.add('yt-error');
-        }
+        el.textContent = 'Playlist not loading — check your playlist ID in CONFIG';
+        el.classList.add('yt-error');
       },
       onStateChange: (e)=>{
         vizPlaying = (e.data === YT.PlayerState.PLAYING);
         document.getElementById('ytPlay').textContent = vizPlaying ? '❚❚' : '▶';
-        if(e.data === YT.PlayerState.PLAYING || e.data === YT.PlayerState.CUED) hideYtSpinner();
         try{
           const data = ytPlayer.getVideoData();
           if(data && data.title) document.getElementById('ytTrackName').textContent = data.title;
