@@ -1474,7 +1474,7 @@ document.getElementById('summaryCopyBtn').addEventListener('click', ()=>{
 });
 function showSummaryPanel(){
   document.getElementById('summaryBody').textContent = buildSummaryText();
-  document.getElementById('summaryPanel').style.display = 'block';
+  document.getElementById('summaryPanel').style.display = 'flex';
   playUIBlip(700);
 }
 
@@ -1515,7 +1515,7 @@ function showStreakPanel(){
     cells.push(`<div class="streak-cell${filled?' filled':''}" title="${d}"></div>`);
   }
   grid.innerHTML = `<div class="streak-grid">${cells.join('')}</div><div class="streak-summary-text">🔥 ${data.streak} day streak — last 35 days shown</div>`;
-  document.getElementById('streakPanel').style.display = 'block';
+  document.getElementById('streakPanel').style.display = 'flex';
   playUIBlip(700);
 }
 
@@ -1668,7 +1668,7 @@ setInterval(()=>{
 if(CONFIG.upiId) document.getElementById('supportUpi').textContent = CONFIG.upiId;
 
 document.getElementById('chaiBtn').addEventListener('click', ()=>{
-  document.getElementById('supportModal').style.display = 'block';
+  document.getElementById('supportModal').style.display = 'flex';
   playUIBlip(700);
 });
 document.getElementById('supportClose').addEventListener('click', ()=>{
