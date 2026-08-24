@@ -133,6 +133,43 @@
   .sfx-toggle{ display:flex; align-items:center; gap:5px; font-family:'JetBrains Mono',monospace; font-size:10px; color:var(--dim); }
   .sfx-toggle input{ accent-color:var(--accent); cursor:none; }
 
+  /* ---- command bar ---- */
+  .cmdbar{
+    display:flex; align-items:center; gap:8px; padding:8px 22px;
+    background:var(--void); border-bottom:1px solid var(--border); z-index:2; flex-shrink:0;
+  }
+  .cmdbar-prompt{ color:var(--accent); font-family:'JetBrains Mono',monospace; font-size:13px; }
+  #cmdInput{
+    flex:1; background:transparent; border:none; outline:none; color:var(--text);
+    font-family:'JetBrains Mono',monospace; font-size:13px; cursor:auto !important;
+  }
+  #cmdInput::placeholder{ color:var(--dim); }
+  .cmdbar-output{
+    padding:4px 22px 8px; font-family:'JetBrains Mono',monospace; font-size:11px; color:var(--dim);
+    background:var(--void); border-bottom:1px solid var(--border); flex-shrink:0;
+  }
+  .cmdbar-output.err{ color:#f97373; }
+  .cmdbar-output.ok{ color:var(--accent); }
+
+  /* ---- floating panels (streak / summary) ---- */
+  .floating-panel{
+    position:fixed; top:50%; left:50%; transform:translate(-50%,-50%); z-index:150;
+    width:320px; max-width:90vw; background:var(--panel); border:1px solid var(--accent);
+    border-radius:10px; box-shadow:0 20px 60px rgba(0,0,0,.6); overflow:hidden;
+  }
+  .floating-panel-header{
+    display:flex; justify-content:space-between; align-items:center; padding:10px 14px;
+    border-bottom:1px solid var(--border); font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--accent);
+  }
+  .streak-grid{ display:grid; grid-template-columns:repeat(7,1fr); gap:4px; padding:14px; }
+  .streak-cell{ width:100%; aspect-ratio:1; border-radius:2px; background:var(--panel-2); border:1px solid var(--border); }
+  .streak-cell.filled{ background:var(--accent); border-color:var(--accent); }
+  .streak-summary-text{ padding:0 14px 14px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text); text-align:center; }
+  .summary-pre{
+    padding:14px; font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text);
+    white-space:pre-wrap; line-height:1.7; margin:0;
+  }
+
   /* ---- live chat / song suggestions ---- */
   .chat-fab{
     position:fixed; bottom:20px; right:20px; z-index:80; width:48px; height:48px; border-radius:50%;
@@ -237,7 +274,26 @@
     font-family:'JetBrains Mono',monospace; font-size:13px; padding:24px 0; text-align:right; line-height:1.9;
   }
   .gutter div{padding-right:12px;}
-  .code-wrap{flex:1; padding:24px 28px; overflow:auto; display:flex; align-items:center;}
+  .code-wrap{flex:1; padding:24px 28px; overflow:auto; display:flex; align-items:center; justify-content:space-between; gap:20px;}
+  .chai-panel{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:14px; min-width:0; text-align:center; }
+  .chai-icon{ font-size:44px; animation:chaiBounce 2.4s ease-in-out infinite; }
+  @keyframes chaiBounce{ 0%,100%{ transform:translateY(0); } 50%{ transform:translateY(-8px); } }
+  .chai-msg{ font-family:'JetBrains Mono',monospace; font-size:13px; color:var(--text); max-width:280px; line-height:1.6; }
+  .chai-btn{
+    background:transparent; border:1px solid var(--accent); color:var(--accent); font-family:'JetBrains Mono',monospace;
+    font-size:12px; padding:9px 18px; border-radius:20px; cursor:none; transition:.2s;
+  }
+  .chai-btn:hover{ background:var(--accent); color:var(--void); }
+  .support-modal-body{ padding:16px; display:flex; flex-direction:column; align-items:center; gap:10px; }
+  .support-qr{ width:170px; height:170px; border-radius:8px; border:1px solid var(--border); object-fit:contain; background:#fff; }
+  .support-upi{ font-family:'JetBrains Mono',monospace; font-size:12px; color:var(--text); background:var(--panel-2); padding:6px 12px; border-radius:6px; }
+  #thankYouOverlay{
+    position:fixed; inset:0; z-index:250; background:rgba(10,14,20,.92); display:none;
+    align-items:center; justify-content:center; flex-direction:column; gap:12px;
+  }
+  #thankYouOverlay .cup{ font-size:70px; animation:chaiBounce 1s ease-in-out infinite; }
+  #thankYouOverlay h2{ font-family:'JetBrains Mono',monospace; color:var(--accent); font-size:20px; }
+  #thankYouOverlay p{ font-family:'JetBrains Mono',monospace; color:var(--dim); font-size:12px; }
   .code{ font-family:'JetBrains Mono',monospace; font-size:15px; line-height:2; white-space:pre-wrap; color:var(--text); }
   .code .kw{color:var(--violet);} .code .fn{color:var(--accent);} .code .cm{color:var(--dim); font-style:italic;} .code .str{color:var(--amber);}
   .caret{display:inline-block; width:8px; height:16px; background:var(--accent); vertical-align:middle; animation:blink 1s step-end infinite;}
@@ -402,6 +458,7 @@
   <div class="item"><span class="lbl">OPERATOR</span><b id="hudUser">DEV_01</b></div>
   <div class="item"><span class="lbl">NODE</span><b>127.0.0.1::localhost-chill</b></div>
   <div class="item"><span class="lbl">SIGNAL</span><b id="hudSignal">▂▄▆█▆▄▂</b></div>
+  <div class="item"><span class="lbl">STREAK</span><b id="hudStreak">🔥 0</b></div>
 </div>
 
 <header class="topbar">
@@ -413,9 +470,48 @@
   </div>
 </header>
 
+<div class="cmdbar">
+  <span class="cmdbar-prompt">&gt;</span>
+  <input type="text" id="cmdInput" list="cmdSuggestions" placeholder="type a command... try 'help'" autocomplete="off">
+  <datalist id="cmdSuggestions"></datalist>
+</div>
+<div id="cmdOutput" class="cmdbar-output" style="display:none;"></div>
+
+<div id="streakPanel" class="floating-panel" style="display:none;">
+  <div class="floating-panel-header"><span>🔥 chill streak</span><button id="streakClose" class="share-btn">close</button></div>
+  <div id="streakBody"></div>
+</div>
+
+<div id="summaryPanel" class="floating-panel" style="display:none;">
+  <div class="floating-panel-header"><span>compile --summary</span><button id="summaryClose" class="share-btn">close</button></div>
+  <pre id="summaryBody" class="summary-pre"></pre>
+  <button id="summaryCopyBtn" class="share-btn" style="margin:0 14px 14px;">copy recap</button>
+</div>
+
 <main class="editor">
   <div class="gutter" id="gutter"></div>
-  <div class="code-wrap"><pre class="code" id="codeArea"></pre></div>
+  <div class="code-wrap">
+    <pre class="code" id="codeArea"></pre>
+    <div class="chai-panel">
+      <div class="chai-icon">☕</div>
+      <div class="chai-msg" id="chaiMsg">bug fixed. deploy shipped. time for chai.</div>
+      <button class="chai-btn" id="chaiBtn">☕ buy me a chai</button>
+    </div>
+  </div>
+  <div id="supportModal" class="floating-panel" style="display:none;">
+    <div class="floating-panel-header"><span>☕ support the dev</span><button id="supportClose" class="share-btn">close</button></div>
+    <div class="support-modal-body">
+      <img class="support-qr" id="supportQr" src="/chai-qr.png" alt="UPI QR code" onerror="this.style.display='none'">
+      <div class="support-upi" id="supportUpi">add your UPI ID in CONFIG</div>
+      <button class="share-btn" id="copyUpiBtn">copy UPI ID</button>
+      <button class="chai-btn" id="paidBtn" style="margin-top:6px;">I've sent it ❤️</button>
+    </div>
+  </div>
+  <div id="thankYouOverlay">
+    <div class="cup">☕</div>
+    <h2>thank you for the chai!</h2>
+    <p>this genuinely made someone's day better</p>
+  </div>
   <aside class="sidebar">
     <div>
       <h3>SYSTEM</h3>
@@ -550,9 +646,19 @@
    Spotify: open your playlist -> Share -> Copy link, id is after "playlist/"
    ========================================================= */
 const CONFIG = {
-  youtubePlaylistId: 'PLC6vl-sljUT0',   // double-check this — YouTube playlist IDs are usually ~34 chars long, this looks like it may have been cut off when copying
+  youtubePlaylistId: 'PLC6vl-sljUT0',   // fallback/default playlist — used for any mood below left blank
+  moodPlaylists: {
+    // set a different YouTube playlist ID per mood — leave a mood blank to fall back to youtubePlaylistId above
+    debug: 'PLBGyhyRXT4cc',
+    standup: 'PLarKZ1vbOcCI',
+    merge: 'PLY1-z8dugL7E',
+    deploy: 'PLZhzYoPCNMBc',
+    review: 'PLZiVPA5SFdgg'
+  },
   spotifyPlaylistId: '',   // e.g. '37i9dQZF1xxxxxxxxxxx'
   operatorName: 'DEV_01',   // shown in the HUD strip up top — change to whatever you want displayed
+  upiId: '',   // your UPI ID, e.g. 'yourname@okhdfcbank' — shown in the "buy me a chai" panel
+  // also add your own QR code image as /chai-qr.png in the same folder as this file
   firebase: {
     // paste your Firebase project config here (from Firebase console -> Project settings -> your web app)
     // leave apiKey empty to keep chat/song-suggestions disabled
@@ -614,7 +720,8 @@ const MOODS = {
     ]
   }
 };
-let currentMood = 'debug';
+const MOOD_KEYS = Object.keys(MOODS);
+let currentMood = MOOD_KEYS[Math.floor(Math.random() * MOOD_KEYS.length)];
 
 const gutter = document.getElementById('gutter');
 for(let i=1;i<=14;i++){ const d=document.createElement('div'); d.textContent=i; gutter.appendChild(d); }
@@ -668,6 +775,8 @@ document.querySelectorAll('.moods button[data-mood]').forEach(btn=>{
       }, 320);
     }
     if(fbDb) updatePresence();
+    moodUsageCount[currentMood] = (moodUsageCount[currentMood] || 0) + 1;
+    loadMoodPlaylist(currentMood);
   });
 });
 
@@ -735,42 +844,97 @@ document.querySelectorAll('.source-tabs button').forEach(btn=>{
 
 // ---------- YouTube player ----------
 let ytPlayer;
-function onYouTubeIframeAPIReady(){
-  if(!CONFIG.youtubePlaylistId) return;
+function getPlaylistForMood(mood){
+  return (CONFIG.moodPlaylists && CONFIG.moodPlaylists[mood]) || CONFIG.youtubePlaylistId;
+}
+
+let ytSpinnerTimer = null;
+function showYtSpinner(){
   document.getElementById('ytSpinner').style.display = 'inline-block';
+  clearTimeout(ytSpinnerTimer);
+  ytSpinnerTimer = setTimeout(()=>{
+    document.getElementById('ytSpinner').style.display = 'none';
+    const el = document.getElementById('ytTrackName');
+    el.textContent = 'Playlist not loading — check your playlist ID in CONFIG';
+    el.classList.add('yt-error');
+  }, 7000);
+}
+function hideYtSpinner(){
+  clearTimeout(ytSpinnerTimer);
+  document.getElementById('ytSpinner').style.display = 'none';
+}
+
+let ytCurrentLoadedPlaylist = null;
+let ytHasPlayedOnce = false;
+
+function ytPlayerEvents(){
+  return {
+    onReady: ()=>{
+      hideYtSpinner();
+      document.getElementById('ytTrackName').textContent = 'Ready — hit play';
+      document.getElementById('ytTrackName').classList.remove('yt-error');
+      if(ytHasPlayedOnce){ try{ ytPlayer.playVideo(); }catch(err){} }
+    },
+    onError: (e)=>{
+      const el = document.getElementById('ytTrackName');
+      if(ytCurrentLoadedPlaylist && ytCurrentLoadedPlaylist !== CONFIG.youtubePlaylistId && CONFIG.youtubePlaylistId){
+        ytCurrentLoadedPlaylist = CONFIG.youtubePlaylistId;
+        el.textContent = 'This mood\'s playlist failed — falling back to default';
+        createYtPlayer(CONFIG.youtubePlaylistId);
+      } else {
+        hideYtSpinner();
+        el.textContent = 'Playlist error (code ' + (e && e.data) + ') — check your playlist ID/visibility';
+        el.classList.add('yt-error');
+      }
+    },
+    onStateChange: (e)=>{
+      vizPlaying = (e.data === YT.PlayerState.PLAYING);
+      document.getElementById('ytPlay').textContent = vizPlaying ? '❚❚' : '▶';
+      if(e.data === YT.PlayerState.PLAYING){ hideYtSpinner(); ytHasPlayedOnce = true; }
+      if(e.data === YT.PlayerState.CUED) hideYtSpinner();
+      if(e.data === YT.PlayerState.ENDED){
+        try{ ytPlayer.nextVideo(); }catch(err){}
+      }
+      try{
+        const data = ytPlayer.getVideoData();
+        if(data && data.title) document.getElementById('ytTrackName').textContent = data.title;
+      }catch(err){}
+    }
+  };
+}
+
+function createYtPlayer(playlistId){
+  ytCurrentLoadedPlaylist = playlistId;
+  showYtSpinner();
+  document.getElementById('ytTrackName').classList.remove('yt-error');
+  if(ytPlayer && typeof ytPlayer.destroy === 'function'){
+    try{ ytPlayer.destroy(); }catch(err){}
+  }
   ytPlayer = new YT.Player('ytPlayer', {
     height: '68', width: '120',
-    playerVars: { listType:'playlist', list: CONFIG.youtubePlaylistId, shuffle:1, autoplay:0, controls:0, modestbranding:1 },
-    events: {
-      onReady: ()=>{
-        document.getElementById('ytSpinner').style.display = 'none';
-        document.getElementById('ytTrackName').textContent = 'Ready — hit play';
-        document.getElementById('ytTrackName').classList.remove('yt-error');
-      },
-      onError: ()=>{
-        document.getElementById('ytSpinner').style.display = 'none';
-        const el = document.getElementById('ytTrackName');
-        el.textContent = 'Playlist not loading — check your playlist ID in CONFIG';
-        el.classList.add('yt-error');
-      },
-      onStateChange: (e)=>{
-        vizPlaying = (e.data === YT.PlayerState.PLAYING);
-        document.getElementById('ytPlay').textContent = vizPlaying ? '❚❚' : '▶';
-        try{
-          const data = ytPlayer.getVideoData();
-          if(data && data.title) document.getElementById('ytTrackName').textContent = data.title;
-        }catch(err){}
-      }
-    }
+    playerVars: { listType:'playlist', list: playlistId, shuffle:1, autoplay: ytHasPlayedOnce ? 1 : 0, controls:0, modestbranding:1 },
+    events: ytPlayerEvents()
   });
+}
+
+function loadMoodPlaylist(mood){
+  const pid = getPlaylistForMood(mood);
+  if(!pid) return;
+  createYtPlayer(pid);
+}
+
+function onYouTubeIframeAPIReady(){
+  const initialPlaylist = getPlaylistForMood(currentMood);
+  if(!initialPlaylist) return;
+  createYtPlayer(initialPlaylist);
 }
 document.getElementById('ytPlay').addEventListener('click', ()=>{
   if(!ytPlayer) return;
   const state = ytPlayer.getPlayerState();
   if(state === YT.PlayerState.PLAYING) ytPlayer.pauseVideo(); else ytPlayer.playVideo();
 });
-document.getElementById('ytPrev').addEventListener('click', ()=>{ if(ytPlayer) ytPlayer.previousVideo(); });
-document.getElementById('ytNext').addEventListener('click', ()=>{ if(ytPlayer) ytPlayer.nextVideo(); });
+document.getElementById('ytPrev').addEventListener('click', ()=>{ if(ytPlayer) ytPlayer.previousVideo(); skipCount++; });
+document.getElementById('ytNext').addEventListener('click', ()=>{ if(ytPlayer) ytPlayer.nextVideo(); skipCount++; });
 document.getElementById('ytVol').addEventListener('input', (e)=>{ if(ytPlayer) ytPlayer.setVolume(Number(e.target.value)); });
 document.getElementById('ytMute').addEventListener('click', ()=>{
   if(!ytPlayer) return;
@@ -838,6 +1002,7 @@ document.getElementById('enterBtn').addEventListener('click', ()=>{
   loadSpotifyEmbed();
   startSessionTimer();
   startPresence();
+  updateStreak();
 });
 
 document.getElementById('resetOperator').addEventListener('click', (e)=>{
@@ -1124,6 +1289,7 @@ function sendChatMessage(){
   });
   input.value = '';
   playUIBlip(600);
+  messagesSentCount++;
 }
 document.getElementById('chatSend').addEventListener('click', sendChatMessage);
 document.getElementById('chatInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendChatMessage(); });
@@ -1265,12 +1431,260 @@ function sendRoomMessage(){
   });
   input.value = '';
   playUIBlip(600);
+  messagesSentCount++;
 }
 document.getElementById('roomChatSend').addEventListener('click', sendRoomMessage);
 document.getElementById('roomChatInput').addEventListener('keydown', (e)=>{ if(e.key==='Enter') sendRoomMessage(); });
 initFirebaseChat();
 
+// ---------- session recap tracking ----------
+let moodUsageCount = {};
+let messagesSentCount = 0;
+let skipCount = 0;
+
+function buildSummaryText(){
+  const h = String(Math.floor(sessionSeconds/3600)).padStart(2,'0');
+  const m = String(Math.floor((sessionSeconds%3600)/60)).padStart(2,'0');
+  const s = String(sessionSeconds%60).padStart(2,'0');
+  let topMood = currentMood, topCount = 0;
+  Object.keys(moodUsageCount).forEach(k=>{
+    if(moodUsageCount[k] > topCount){ topCount = moodUsageCount[k]; topMood = k; }
+  });
+  const topLabel = MOODS[topMood] ? MOODS[topMood].label : topMood;
+  return `$ compile --summary
+------------------------------
+operator      : ${CONFIG.operatorName || 'anon'}
+session time  : ${h}:${m}:${s}
+top mood      : ${topLabel}
+mood switches : ${Object.values(moodUsageCount).reduce((a,b)=>a+b,0)}
+messages sent : ${messagesSentCount}
+tracks skipped: ${skipCount}
+streak        : ${getStreakData().streak} day(s)
+------------------------------
+status: it's not much, but it's honest work`;
+}
+document.getElementById('summaryClose').addEventListener('click', ()=>{
+  document.getElementById('summaryPanel').style.display = 'none';
+});
+document.getElementById('summaryCopyBtn').addEventListener('click', ()=>{
+  const txt = document.getElementById('summaryBody').textContent;
+  if(navigator.clipboard) navigator.clipboard.writeText(txt).then(()=>showToast('recap copied to clipboard'));
+  playUIBlip(760);
+});
+function showSummaryPanel(){
+  document.getElementById('summaryBody').textContent = buildSummaryText();
+  document.getElementById('summaryPanel').style.display = 'block';
+  playUIBlip(700);
+}
+
+// ---------- daily chill streak ----------
+function todayStr(){
+  return new Date().toISOString().slice(0,10);
+}
+function getStreakData(){
+  try{
+    return JSON.parse(localStorage.getItem('chillStreakData')) || { streak:0, lastVisit:null, days:[] };
+  }catch(e){ return { streak:0, lastVisit:null, days:[] }; }
+}
+function updateStreak(){
+  const data = getStreakData();
+  const today = todayStr();
+  if(data.lastVisit !== today){
+    const yesterday = new Date(Date.now() - 86400000).toISOString().slice(0,10);
+    data.streak = (data.lastVisit === yesterday) ? data.streak + 1 : 1;
+    data.lastVisit = today;
+    data.days = data.days || [];
+    data.days.push(today);
+    if(data.days.length > 35) data.days = data.days.slice(-35);
+    localStorage.setItem('chillStreakData', JSON.stringify(data));
+  }
+  document.getElementById('hudStreak').textContent = '🔥 ' + data.streak;
+  return data;
+}
+document.getElementById('streakClose').addEventListener('click', ()=>{
+  document.getElementById('streakPanel').style.display = 'none';
+});
+function showStreakPanel(){
+  const data = getStreakData();
+  const grid = document.getElementById('streakBody');
+  const cells = [];
+  for(let i=34;i>=0;i--){
+    const d = new Date(Date.now() - i*86400000).toISOString().slice(0,10);
+    const filled = (data.days||[]).includes(d);
+    cells.push(`<div class="streak-cell${filled?' filled':''}" title="${d}"></div>`);
+  }
+  grid.innerHTML = `<div class="streak-grid">${cells.join('')}</div><div class="streak-summary-text">🔥 ${data.streak} day streak — last 35 days shown</div>`;
+  document.getElementById('streakPanel').style.display = 'block';
+  playUIBlip(700);
+}
+
+// ---------- command bar ----------
+const COMMANDS = [
+  'help', 'checkout debugging-2am', 'checkout standup-hell', 'checkout merge-conflict',
+  'checkout deploy-friday', 'checkout code-review-anxiety', 'source youtube', 'source spotify',
+  'source synth', 'play', 'pause', 'next', 'prev', 'mute', 'unmute', 'vol 50',
+  'chat hello world', 'streak', 'summary', 'whoami', 'clear'
+];
+(function buildCmdSuggestions(){
+  const dl = document.getElementById('cmdSuggestions');
+  COMMANDS.forEach(c=>{
+    const opt = document.createElement('option');
+    opt.value = c;
+    dl.appendChild(opt);
+  });
+})();
+
+const MOOD_SLUG_TO_KEY = {
+  'debugging-2am':'debug', 'standup-hell':'standup', 'merge-conflict':'merge',
+  'deploy-friday':'deploy', 'code-review-anxiety':'review'
+};
+
+function cmdOut(msg, cls){
+  const el = document.getElementById('cmdOutput');
+  el.textContent = msg;
+  el.className = 'cmdbar-output' + (cls ? ' ' + cls : '');
+  el.style.display = 'block';
+}
+
+function runCommand(raw){
+  const cmd = raw.trim();
+  if(!cmd) return;
+  const parts = cmd.split(' ');
+  const verb = parts[0].toLowerCase();
+
+  if(verb === 'help'){
+    cmdOut('commands: checkout <mood>, source <youtube|spotify|synth>, play, pause, next, prev, mute, unmute, vol <0-100>, chat <msg>, streak, summary, whoami, clear');
+    return;
+  }
+  if(verb === 'checkout' || verb === 'mood'){
+    const slug = parts.slice(1).join(' ').replace(/^#/, '');
+    const key = MOOD_SLUG_TO_KEY[slug] || (MOODS[slug] ? slug : null);
+    const btn = key ? document.querySelector(`.moods button[data-mood="${key}"]`) : null;
+    if(btn){ btn.click(); cmdOut('switched to #' + slug, 'ok'); }
+    else cmdOut('unknown mood: ' + slug, 'err');
+    return;
+  }
+  if(verb === 'source'){
+    const src = (parts[1] || '').toLowerCase();
+    const btn = document.querySelector(`.source-tabs button[data-src="${src}"]`);
+    if(btn){ btn.click(); cmdOut('source -> ' + src, 'ok'); }
+    else cmdOut('unknown source: ' + src + ' (try youtube/spotify/synth)', 'err');
+    return;
+  }
+  if(verb === 'play' || verb === 'pause'){
+    const activeSrc = document.querySelector('.source-tabs button.active')?.dataset.src;
+    if(activeSrc === 'youtube') document.getElementById('ytPlay').click();
+    else if(activeSrc === 'synth') document.getElementById('playBtn').click();
+    else { cmdOut('playback control not available for Spotify embed', 'err'); return; }
+    cmdOut(verb + ' toggled', 'ok');
+    return;
+  }
+  if(verb === 'next' || verb === 'skip'){
+    document.getElementById('ytNext').click();
+    cmdOut('skipped to next track', 'ok');
+    return;
+  }
+  if(verb === 'prev'){
+    document.getElementById('ytPrev').click();
+    cmdOut('back to previous track', 'ok');
+    return;
+  }
+  if(verb === 'mute' || verb === 'unmute'){
+    document.getElementById('ytMute').click();
+    cmdOut('toggled mute', 'ok');
+    return;
+  }
+  if(verb === 'vol'){
+    const val = Math.max(0, Math.min(100, parseInt(parts[1], 10) || 0));
+    const activeSrc = document.querySelector('.source-tabs button.active')?.dataset.src;
+    const slider = activeSrc === 'synth' ? document.getElementById('vol') : document.getElementById('ytVol');
+    slider.value = val;
+    slider.dispatchEvent(new Event('input'));
+    cmdOut('volume -> ' + val, 'ok');
+    return;
+  }
+  if(verb === 'chat'){
+    const msg = parts.slice(1).join(' ');
+    if(!msg){ cmdOut('usage: chat <message>', 'err'); return; }
+    if(!fbDb){ cmdOut('chat not set up yet', 'err'); return; }
+    document.getElementById('chatPanel').classList.add('open');
+    document.querySelector('.chat-tabs button[data-tab="chat"]').click();
+    document.getElementById('chatInput').value = msg;
+    sendChatMessage();
+    cmdOut('sent to live chat', 'ok');
+    return;
+  }
+  if(verb === 'streak'){
+    showStreakPanel();
+    cmdOut('streak panel opened', 'ok');
+    return;
+  }
+  if(verb === 'summary' || cmd === 'compile --summary'){
+    showSummaryPanel();
+    cmdOut('summary generated', 'ok');
+    return;
+  }
+  if(verb === 'whoami'){
+    cmdOut(CONFIG.operatorName || 'anon');
+    return;
+  }
+  if(verb === 'clear'){
+    document.getElementById('cmdOutput').style.display = 'none';
+    return;
+  }
+  cmdOut('command not found: ' + verb + ' — try "help"', 'err');
+}
+
+document.getElementById('cmdInput').addEventListener('keydown', (e)=>{
+  if(e.key === 'Enter'){
+    const val = e.target.value;
+    runCommand(val);
+    e.target.value = '';
+    playUIBlip(680);
+  }
+});
+
 renderMood(currentMood);
+
+// ---------- buy me a chai ----------
+const CHAI_MESSAGES = [
+  'bug fixed. deploy shipped. time for chai.',
+  'PR reviewed. now go touch grass, or chai.',
+  'merge conflict resolved. you earned this.',
+  'stand-up survived. reward yourself.',
+  'it compiled on the first try. suspicious. celebrate anyway.'
+];
+const chaiMsgEl = document.getElementById('chaiMsg');
+chaiMsgEl.textContent = CHAI_MESSAGES[Math.floor(Math.random()*CHAI_MESSAGES.length)];
+setInterval(()=>{
+  chaiMsgEl.style.opacity = 0;
+  setTimeout(()=>{
+    chaiMsgEl.textContent = CHAI_MESSAGES[Math.floor(Math.random()*CHAI_MESSAGES.length)];
+    chaiMsgEl.style.opacity = 1;
+  }, 300);
+}, 8000);
+
+if(CONFIG.upiId) document.getElementById('supportUpi').textContent = CONFIG.upiId;
+
+document.getElementById('chaiBtn').addEventListener('click', ()=>{
+  document.getElementById('supportModal').style.display = 'block';
+  playUIBlip(700);
+});
+document.getElementById('supportClose').addEventListener('click', ()=>{
+  document.getElementById('supportModal').style.display = 'none';
+});
+document.getElementById('copyUpiBtn').addEventListener('click', ()=>{
+  if(!CONFIG.upiId){ showToast('add your UPI ID in CONFIG first'); return; }
+  if(navigator.clipboard) navigator.clipboard.writeText(CONFIG.upiId).then(()=>showToast('UPI ID copied'));
+  playUIBlip(760);
+});
+document.getElementById('paidBtn').addEventListener('click', ()=>{
+  document.getElementById('supportModal').style.display = 'none';
+  const overlay = document.getElementById('thankYouOverlay');
+  overlay.style.display = 'flex';
+  playUIBlip(900);
+  setTimeout(()=>{ overlay.style.display = 'none'; }, 3200);
+});
 </script>
 </body>
 </html>
